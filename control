@@ -1,0 +1,9 @@
+Package: dev.preloading.retranslate
+Name: Retranslate
+Version: 1.0.0
+Architecture: iphoneos-arm
+Description: Fixes Google Translate.
+Maintainer: Preloading
+Author: Preloading, SpaceSaver2000-1
+Section: Tweaks
+Depends: mobilesubstrate (>= 0.9.5000)
