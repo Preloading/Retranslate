@@ -1,15 +1,36 @@
 //
 //  CJSONScanner.m
-//  TouchJSON
+//  TouchCode
 //
 //  Created by Jonathan Wight on 12/07/2005.
-//  Copyright 2005 Toxic Software. All rights reserved.
+//  Copyright 2005 toxicsoftware.com. All rights reserved.
+//
+//  Permission is hereby granted, free of charge, to any person
+//  obtaining a copy of this software and associated documentation
+//  files (the "Software"), to deal in the Software without
+//  restriction, including without limitation the rights to use,
+//  copy, modify, merge, publish, distribute, sublicense, and/or sell
+//  copies of the Software, and to permit persons to whom the
+//  Software is furnished to do so, subject to the following
+//  conditions:
+//
+//  The above copyright notice and this permission notice shall be
+//  included in all copies or substantial portions of the Software.
+//
+//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+//  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+//  OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+//  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+//  HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+//  WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+//  FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+//  OTHER DEALINGS IN THE SOFTWARE.
 //
 
 #import "CJSONScanner.h"
 
-#import "../Extensions/NSCharacterSet_Extensions.h"
-#import "../Extensions/CDataScanner_Extensions.h"
+#import "NSCharacterSet_Extensions.h"
+#import "CDataScanner_Extensions.h"
 
 #if !defined(TREAT_COMMENTS_AS_WHITESPACE)
 #define TREAT_COMMENTS_AS_WHITESPACE 0
@@ -34,10 +55,13 @@ else
 
 @implementation CJSONScanner
 
+@synthesize strictEscapeCodes;
+
 - (id)init
 {
 if ((self = [super init]) != nil)
 	{
+	strictEscapeCodes = NO;
 	}
 return(self);
 }
@@ -87,6 +111,8 @@ if (theData && theData.length >= 4)
 
 - (BOOL)scanJSONObject:(id *)outObject error:(NSError **)outError
 {
+BOOL theResult = YES;
+
 [self skipWhitespace];
 
 id theObject = NULL;
@@ -114,7 +140,7 @@ switch (C)
 		break;
 	case '\"':
 	case '\'':
-		[self scanJSONStringConstant:&theObject error:outError];
+		theResult = [self scanJSONStringConstant:&theObject error:outError];
 		break;
 	case '0':
 	case '1':
@@ -127,13 +153,13 @@ switch (C)
 	case '8':
 	case '9':
 	case '-':
-		[self scanJSONNumberConstant:&theObject error:outError];
+		theResult = [self scanJSONNumberConstant:&theObject error:outError];
 		break;
 	case '{':
-		[self scanJSONDictionary:&theObject error:outError];
+		theResult = [self scanJSONDictionary:&theObject error:outError];
 		break;
 	case '[':
-		[self scanJSONArray:&theObject error:outError];
+		theResult = [self scanJSONArray:&theObject error:outError];
 		break;
 	default:
 		
@@ -142,7 +168,8 @@ switch (C)
 
 if (outObject != NULL)
 	*outObject = theObject;
-return(YES);
+
+return(theResult);
 }
 
 - (BOOL)scanJSONDictionary:(NSDictionary **)outDictionary error:(NSError **)outError
@@ -432,16 +459,19 @@ while ([self scanCharacter:'"'] == NO)
 				break;
 			default:
 				{
-				[self setScanLocation:theScanLocation];
-				if (outError)
+				if (strictEscapeCodes == YES)
 					{
-					NSDictionary *theUserInfo = [NSDictionary dictionaryWithObjectsAndKeys:
-						@"Could not scan string constant. Unknown escape code.", NSLocalizedDescriptionKey,
-						NULL];
-					*outError = [NSError errorWithDomain:kJSONScannerErrorDomain code:-13 userInfo:theUserInfo];
+					[self setScanLocation:theScanLocation];
+					if (outError)
+						{
+						NSDictionary *theUserInfo = [NSDictionary dictionaryWithObjectsAndKeys:
+							@"Could not scan string constant. Unknown escape code.", NSLocalizedDescriptionKey,
+							NULL];
+						*outError = [NSError errorWithDomain:kJSONScannerErrorDomain code:-13 userInfo:theUserInfo];
+						}
+					[theString release];
+					return(NO);
 					}
-				[theString release];
-				return(NO);
 				}
 				break;
 			}
