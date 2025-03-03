@@ -1,4 +1,7 @@
 #import <Foundation/Foundation.h>
+#import "./lib/TouchJSON/CDataScanner.h"
+#import "./lib/TouchJSON/JSON/CJSONDeserializer.h"
+#import "./lib/TouchJSON/JSON/CJSONSerializer.h"
 
 
 %hook NSURL 
@@ -24,27 +27,38 @@
 %hook TextTranslator
 
 - (id)parseTranslateAPIResponse:(id)response {
+    NSLog(@"[Retranslate] Parsing response...");
+    NSLog(@"[Retranslate] Original response: %@", response);
     NSError *jsonError = nil;
-    id json = [NSJSONSerialization JSONObjectWithData:[response dataUsingEncoding:NSUTF8StringEncoding]
-                                            options:0
-                                              error:&jsonError];
+    id json = [[CJSONDeserializer deserializer] deserialize:response 
+                                                      error:&jsonError];
+
+    NSLog(@"its print debugging time 1");
     
     if (jsonError || !json) {
         NSLog(@"[Retranslate] JSON parsing error: %@", jsonError);
         return response;
     }
 
+    NSLog(@"its print debugging time 2");
+
     if (![json isKindOfClass:[NSDictionary class]]) {
         return response;
     }
+
+    NSLog(@"its print debugging time 3");
 
     NSArray *sentences = [json objectForKey:@"sentences"];
     if (![sentences isKindOfClass:[NSArray class]]) {
         return response;
     }
 
+    NSLog(@"its print debugging time 4");
+
     NSMutableArray *processedSentences = [NSMutableArray array];
     NSMutableDictionary *lastTransSentence = nil;
+
+    NSLog(@"its print debugging time 5");
 
     for (NSDictionary *sentence in sentences) {
         if (![sentence isKindOfClass:[NSDictionary class]]) {
@@ -64,16 +78,14 @@
             [lastTransSentence setObject:srcTranslit forKey:@"src_translit"];
         }
     }
+    NSLog(@"its print debugging time 6");
 
     NSMutableDictionary *modifiedJson = [json mutableCopy];
     [modifiedJson setObject:processedSentences forKey:@"sentences"];
 
-    NSError *writeError = nil;
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:modifiedJson 
-                                                      options:NSJSONWritingPrettyPrinted 
-                                                        error:&writeError];
-    NSString *jsonString = [[NSString alloc] initWithData:jsonData 
-                                               encoding:NSUTF8StringEncoding];
+    NSLog(@"its print debugging time 7");
+
+    NSString *jsonString = [[CJSONSerializer serializer] serializeObject:modifiedJson];
     NSLog(@"[Retranslate] Modified response for parsing.");
     
     return %orig(jsonString);
