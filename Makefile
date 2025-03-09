@@ -8,13 +8,15 @@ ARCHS := armv6 armv7
 include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = Retranslate
+
 Retranslate_FILES = Tweak.x \
-    lib/TouchJSON/JSON/CJSONSerializer.m \
-    lib/TouchJSON/JSON/CJSONDeserializer.m \
-    lib/TouchJSON/JSON/CJSONScanner.m \
-    lib/TouchJSON/CDataScanner.m
+    $(wildcard lib/TouchJSON/*.m) \
+    $(wildcard lib/TouchJSON/JSON/*.m) \
+    $(wildcard lib/TouchJSON/Extensions/*.m)
 
 Retranslate_CFLAGS = -Wno-deprecated-declarations
+Retranslate_CFLAGS += -I$(THEOS_PROJECT_DIR)/lib/TouchJSON
+Retranslate_CFLAGS += -I$(THEOS_PROJECT_DIR)/lib/TouchJSON/JSON
 Retranslate_CFLAGS += -I$(THEOS_PROJECT_DIR)/lib/TouchJSON/Extensions
 
 include $(THEOS_MAKE_PATH)/tweak.mk
